@@ -3,6 +3,7 @@
 import Game from './game.js'
 import makeTable from './table.js'
 import { randBetweenInc } from './util.js'
+import { HmacKey, HmacCalc } from './hmac.js'
 
 import chalk from 'chalk'
 import promptBuilder from 'prompt-sync'
@@ -11,6 +12,9 @@ const prompt = promptBuilder({ sigint: true })
 const log = console.log
 const warn = text => log(chalk.bold.red(text))
 const ARGV = process.argv.splice(2)
+
+const HMAC_KEY_LEN = 32
+const HMAC_ALGO = 'sha3-256'
 
 function colorResult (result) {
   switch (result) {
@@ -61,6 +65,10 @@ printMoves()
 
 for (; ;) {
   game.makeMove(randBetweenInc(1, size))
+  const hmacKey = new HmacKey(HMAC_KEY_LEN)
+  const hmacCalc = new HmacCalc(HMAC_ALGO, hmacKey.bytes)
+  hmacCalc.update(game.nameByIndex(game.computerMove))
+  log(chalk.bold('HMAC: ') + hmacCalc)
 
   const userMove = prompt(chalk.bold('Enter your move: ')).trim()
 
@@ -90,6 +98,7 @@ for (; ;) {
   log(chalk.bold('Your move: ') + game.nameByIndex(game.userMove))
   log(chalk.bold('Computer move: ') + game.nameByIndex(game.computerMove))
   log(chalk.bold(colorResult(game.result)))
+  log(chalk.bold(`HMAC key (${HMAC_ALGO}): `) + hmacKey)
 
   if (game.result !== 'Draw') {
     break
